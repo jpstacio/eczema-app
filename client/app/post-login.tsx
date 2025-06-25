@@ -12,16 +12,20 @@ export default function PostLoginRedirect() {
     const checkProfile = async () => {
       try {
         const userId = await SecureStore.getItemAsync('userId');
-        if (!userId) throw new Error('User ID not found');
+        const token = await SecureStore.getItemAsync('userToken');
+        if (!userId || !token) throw new Error('Missing auth info');
 
-        const response = await axios.get(`${API_URL}/profile/${userId}`);
+        const response = await axios.get(`${API_URL}/profile/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (response.status === 200) {
           router.replace('/home');
         }
       } catch (err: any) {
         if (err.response?.status === 404) {
-          // Profile not found — redirect to setup
           router.replace('/profile-setup');
         } else {
           console.error('Error checking profile:', err);

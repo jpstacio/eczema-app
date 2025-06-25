@@ -1,13 +1,15 @@
 // app/home.tsx
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Button } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { API_URL } from '@/constants/api';
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -17,7 +19,7 @@ export default function HomeScreen() {
         if (!userId || !token) throw new Error('Missing auth info');
 
         const response = await axios.get(`${API_URL}/profile/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         setProfile(response.data);
@@ -43,6 +45,7 @@ export default function HomeScreen() {
     return (
       <View style={styles.centered}>
         <Text>No profile data found.</Text>
+        <Button title="Set Up Profile" onPress={() => router.push('/profile-setup')} />
       </View>
     );
   }
@@ -56,6 +59,10 @@ export default function HomeScreen() {
       <Text><Text style={styles.label}>Date of Birth:</Text> {profile.dob}</Text>
       <Text><Text style={styles.label}>Gender/Sex:</Text> {profile.gender}</Text>
       <Text><Text style={styles.label}>Skin Conditions:</Text> {profile.conditions || 'None'}</Text>
+
+      <View style={{ marginTop: 20 }}>
+        <Button title="Edit Profile" onPress={() => router.push('/edit-profile')} />
+      </View>
     </ScrollView>
   );
 }
