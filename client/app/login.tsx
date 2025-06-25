@@ -1,17 +1,41 @@
 // app/login.tsx
 import { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
+import * as SecureStore from 'expo-secure-store';
+import { API_URL } from '@/constants/api';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // Later, this will send a request to your backend API
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
-    } else {
-      Alert.alert('Login', `Logging in as ${email}`);
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+      const { token } = response.data;
+
+      const { userId } = jwtDecode(token) as { userId: string };
+
+      await SecureStore.setItemAsync('userToken', token);
+      await SecureStore.setItemAsync('userId', String(userId));
+
+      Alert.alert('Login Successful', 'Welcome!', [
+        {
+          text: 'Continue',
+          onPress: () => router.replace('/post-login'),
+        },
+      ]);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      Alert.alert('Login Failed', error.response?.data?.error || 'Something went wrong');
     }
   };
 
@@ -34,6 +58,10 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
       <Button title="Login" onPress={handleLogin} />
+
+      <TouchableOpacity onPress={() => router.replace('/register')}>
+        <Text style={styles.link}>Don’t have an account? Register</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -58,5 +86,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 16,
     borderRadius: 8,
+  },
+  link: {
+    color: 'blue',
+    marginTop: 20,
+    textAlign: 'center',
   },
 });
