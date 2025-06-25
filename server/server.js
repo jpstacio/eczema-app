@@ -5,14 +5,10 @@ const cors = require('cors');
 const app = express();
 
 const authRoutes = require('./routes/authRoutes');
-const profileRoutes = require('./routes/profileRoutes'); 
-const { User, Profile } = require('./models');
+const profileRoutes = require('./routes/profileRoutes');
+const productRoutes = require('./routes/productRoutes');
 
-const sequelize = require('./config/db');
-
-// ⬇️ Ensure Sequelize knows about all models
-require('./models/User');
-require('./models/Profile'); // ← NEW
+const { sequelize, User, Profile, Product, UsageLog } = require('./models');
 
 app.use(cors());
 app.use(express.json());
@@ -24,7 +20,8 @@ app.get('/', (req, res) => {
 
 // Routes
 app.use('/auth', authRoutes);
-app.use('/profile', profileRoutes); // ← NEW
+app.use('/profile', profileRoutes);
+app.use('/product', productRoutes);
 
 // Sync DB and start server
 const PORT = process.env.PORT || 5001;

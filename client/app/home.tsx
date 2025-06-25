@@ -63,6 +63,11 @@ export default function HomeScreen() {
       <View style={{ marginTop: 20 }}>
         <Button title="Edit Profile" onPress={() => router.push('/edit-profile')} />
       </View>
+
+      <View style={{ marginTop: 10 }}>
+        <Button title="View Products" onPress={() => router.push('/products')} />
+      </View>
+
     </ScrollView>
   );
 }
