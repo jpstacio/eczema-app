@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { Profile } = require('../models');
-const authenticateToken = require('../middleware/authMiddleware'); 
+const authenticateToken = require('../middleware/authMiddleware');
 
 // GET /profile/:userId — Get profile
 router.get('/:userId', authenticateToken, async (req, res) => {
   const { userId } = req.params;
-
   try {
     const profile = await Profile.findOne({ where: { userId } });
     if (!profile) {
@@ -19,13 +18,13 @@ router.get('/:userId', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /profile/:userId — Create or update profile
+// POST /profile/:userId — Create new profile
 router.post('/:userId', authenticateToken, async (req, res) => {
   const { userId } = req.params;
   const { skinType, allergies, dob, gender, conditions } = req.body;
 
   try {
-    await Profile.upsert({
+    const [profile, created] = await Profile.upsert({
       userId,
       skinType,
       allergies,
@@ -33,11 +32,27 @@ router.post('/:userId', authenticateToken, async (req, res) => {
       gender,
       conditions,
     });
-
-    res.json({ message: 'Profile saved successfully' });
+    res.json({ message: created ? 'Profile created' : 'Profile updated' });
   } catch (err) {
     console.error('Profile save error:', err);
     res.status(500).json({ error: 'Failed to save profile' });
+  }
+});
+
+// ✅ PUT /profile/:userId — Update profile (cleaner route for editing)
+router.put('/:userId', authenticateToken, async (req, res) => {
+  const { userId } = req.params;
+  const { skinType, allergies, dob, gender, conditions } = req.body;
+
+  try {
+    await Profile.update(
+      { skinType, allergies, dob, gender, conditions },
+      { where: { userId } }
+    );
+    res.json({ message: 'Profile updated' });
+  } catch (err) {
+    console.error('Profile update error:', err);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
