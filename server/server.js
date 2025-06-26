@@ -1,4 +1,3 @@
-// server/server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -7,8 +6,10 @@ const app = express();
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const productRoutes = require('./routes/productRoutes');
+const dietRoutes = require('./routes/dietRoutes');
+const wellbeingRoutes = require('./routes/wellbeingRoutes');
 
-const { sequelize, User, Profile, Product, UsageLog } = require('./models');
+const { sequelize, User, Profile, Product, UsageLog, DietLog, WellBeingLog } = require('./models');
 
 app.use(cors());
 app.use(express.json());
@@ -22,6 +23,8 @@ app.get('/', (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/profile', profileRoutes);
 app.use('/product', productRoutes);
+app.use('/diet-log', dietRoutes);
+app.use('/wellbeing-log', wellbeingRoutes);
 
 // Sync DB and start server
 const PORT = process.env.PORT || 5001;
