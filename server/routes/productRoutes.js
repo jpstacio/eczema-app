@@ -52,7 +52,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
 // DELETE /product/:id – delete a product
 // DELETE /product/:id
-router.delete('/product/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
     const product = await Product.findByPk(id);

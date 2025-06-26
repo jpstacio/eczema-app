@@ -77,7 +77,7 @@ export default function EditProduct() {
         </Picker>
       </View>
 
-      <Text style={styles.label}>Frequency</Text>
+      <Text style={styles.label}>Use Frequency</Text>
       <View style={styles.pickerWrapper}>
         <Picker selectedValue={frequency} onValueChange={setFrequency}>
           {frequencyOptions.map((option) => (

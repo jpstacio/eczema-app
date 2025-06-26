@@ -13,6 +13,8 @@ import axios from 'axios';
 import { API_URL } from '@/constants/api';
 import { useRouter } from 'expo-router';
 import { formatDate, formatFrequency } from '@/utils/formatting';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 type Product = {
   id: number;
@@ -39,7 +41,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
     const loadData = async () => {
       try {
         const userId = await SecureStore.getItemAsync('userId');
@@ -70,7 +73,9 @@ export default function HomeScreen() {
     };
 
     loadData();
-  }, []);
+  }, [])
+);
+
 
   const handleDeleteProduct = async (productId: number) => {
     try {
@@ -120,64 +125,71 @@ export default function HomeScreen() {
       <Text style={styles.title}>Welcome to your dashboard!</Text>
 
       {/* Profile Info */}
-      <Text style={styles.sectionTitle}>Your Profile</Text>
-      <Text><Text style={styles.label}>Skin Type:</Text> {profile.skinType}</Text>
-      <Text><Text style={styles.label}>Allergies:</Text> {profile.allergies || 'None'}</Text>
-      <Text><Text style={styles.label}>Date of Birth:</Text> {formatDate(profile.dob)}</Text>
-      <Text><Text style={styles.label}>Gender/Sex:</Text> {profile.gender}</Text>
-      <Text><Text style={styles.label}>Skin Conditions:</Text> {profile.conditions || 'None'}</Text>
-      <View style={{ marginTop: 20 }}>
-        <Button title="Edit Profile" onPress={() => router.push('/edit-profile')} />
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Your Profile</Text>
+        <Text><Text style={styles.label}>Skin Type:</Text> {profile.skinType}</Text>
+        <Text><Text style={styles.label}>Allergies:</Text> {profile.allergies || 'None'}</Text>
+        <Text><Text style={styles.label}>Date of Birth:</Text> {formatDate(profile.dob)}</Text>
+        <Text><Text style={styles.label}>Gender/Sex:</Text> {profile.gender}</Text>
+        <Text><Text style={styles.label}>Skin Conditions:</Text> {profile.conditions || 'None'}</Text>
+        <View style={{ marginTop: 12 }}>
+          <Button title="Edit Profile" onPress={() => router.push('/edit-profile')} />
+        </View>
       </View>
 
       {/* Product Tracker */}
-      <Text style={styles.sectionTitle}>Your Products</Text>
-      {products.length === 0 ? (
-        <Text>No products yet.</Text>
-      ) : (
-        products.map((item) => (
-          <View key={item.id} style={styles.productItem}>
-            <Text style={styles.productTitle}>{item.name}</Text>
-            <Text>Type: {item.type}</Text>
-            <Text>Frequency: {formatFrequency(item.frequency)}</Text>
-            <Text>Start: {formatDate(item.startDate)}</Text>
-            <Text>Stop: {item.endDate ? formatDate(item.endDate) : 'Ongoing'}</Text>
-            {item.notes && <Text>Notes: {item.notes}</Text>}
-            <View style={{ flexDirection: 'row', marginTop: 8 }}>
-              <Button title="Edit" onPress={() => router.push(`/products/${item.id}/edit`)} />
-              <View style={{ width: 10 }} />
-              <Button title="Delete" color="red" onPress={() => handleDeleteProduct(item.id)} />
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Your Products</Text>
+        {products.length === 0 ? (
+          <Text>No products yet.</Text>
+        ) : (
+          products.map((item) => (
+            <View key={item.id} style={styles.entryBox}>
+              <Text style={styles.entryTitle}>{item.name}</Text>
+              <Text>Type: {item.type}</Text>
+              <Text>Frequency: {formatFrequency(item.frequency)}</Text>
+              <Text>Start: {formatDate(item.startDate)}</Text>
+              <Text>Stop: {item.endDate ? formatDate(item.endDate) : 'Ongoing'}</Text>
+              {item.notes && <Text>Notes: {item.notes}</Text>}
+              <View style={styles.rowButtons}>
+                <Button title="Edit" onPress={() => router.push(`/products/${item.id}/edit`)} />
+                <View style={{ width: 10 }} />
+                <Button title="Delete" color="red" onPress={() => handleDeleteProduct(item.id)} />
+              </View>
             </View>
-          </View>
-        ))
-      )}
-      <View style={{ marginTop: 20 }}>
-        <Button title="Add Product" onPress={() => router.push('/products/add-product')} />
+          ))
+        )}
+        <View style={{ marginTop: 12 }}>
+          <Button title="Add Product" onPress={() => router.push('/products/add-product')} />
+        </View>
       </View>
 
       {/* Lifestyle Tracker - Diet Logs */}
-      <Text style={styles.sectionTitle}>Lifestyle Tracker</Text>
-      <Button title="Track Diet" onPress={() => router.push('/lifestyle/add-diet-log')} />
-
-      {dietLogs.length === 0 ? (
-        <Text style={{ marginTop: 10 }}>No diet logs yet.</Text>
-      ) : (
-        dietLogs.map((log) => (
-          <View key={log.id} style={styles.productItem}>
-            <Text style={styles.productTitle}>{formatDate(log.date)}</Text>
-            {log.meals.breakfast && <Text>Breakfast: {log.meals.breakfast}</Text>}
-            {log.meals.lunch && <Text>Lunch: {log.meals.lunch}</Text>}
-            {log.meals.dinner && <Text>Dinner: {log.meals.dinner}</Text>}
-            {log.snacks && <Text>Snacks: {log.snacks}</Text>}
-            {log.waterIntake != null && <Text>Water Intake: {log.waterIntake} mL</Text>}
-            <View style={{ flexDirection: 'row', marginTop: 8 }}>
-              <Button title="Edit" onPress={() => router.push(`/lifestyle/edit-diet-log/${log.id}`)} />
-              <View style={{ width: 10 }} />
-              <Button title="Delete" color="red" onPress={() => handleDeleteDietLog(log.id)} />
+      <View style={styles.card}>
+        <View style={styles.rowSpaceBetween}>
+          <Text style={styles.sectionTitle}>Food Tracker</Text>
+          <Button title="Track Diet" onPress={() => router.push('/lifestyle/add-diet-log')} />
+        </View>
+        {dietLogs.length === 0 ? (
+          <Text style={{ marginTop: 10 }}>No diet logs yet.</Text>
+        ) : (
+          dietLogs.map((log) => (
+            <View key={log.id} style={styles.entryBox}>
+              <Text style={styles.entryTitle}>{formatDate(log.date)}</Text>
+              {log.meals.breakfast && <Text>Breakfast: {log.meals.breakfast}</Text>}
+              {log.meals.lunch && <Text>Lunch: {log.meals.lunch}</Text>}
+              {log.meals.dinner && <Text>Dinner: {log.meals.dinner}</Text>}
+              {log.snacks && <Text>Snacks: {log.snacks}</Text>}
+              {log.waterIntake != null && <Text>Water Intake: {log.waterIntake} mL</Text>}
+              <View style={styles.rowButtons}>
+                <Button title="Edit" onPress={() => router.push(`/lifestyle/edit-diet-log/${log.id}`)} />
+                <View style={{ width: 10 }} />
+                <Button title="Delete" color="red" onPress={() => handleDeleteDietLog(log.id)} />
+              </View>
             </View>
-          </View>
-        ))
-      )}
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -203,25 +215,38 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 12,
+    marginBottom: 8,
   },
   label: {
     fontWeight: '600',
   },
-  productItem: {
-    padding: 12,
-    borderRadius: 8,
+  card: {
     backgroundColor: '#fff',
-    marginBottom: 12,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 3,
   },
-  productTitle: {
+  entryBox: {
+    marginBottom: 12,
+  },
+  entryTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
+  },
+  rowButtons: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  rowSpaceBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
 });
