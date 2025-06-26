@@ -16,87 +16,103 @@ import { formatDate, formatFrequency } from '@/utils/formatting';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 
-type Product = {
-  id: number;
-  name: string;
-  type: string;
-  frequency: string;
-  startDate: string;
-  endDate?: string | null;
-  notes?: string;
-};
-
-type DietLog = {
-  id: number;
-  date: string;
-  meals: { breakfast?: string; lunch?: string; dinner?: string };
-  snacks?: string;
-  waterIntake?: number;
-};
+const today = new Date().toISOString().split('T')[0];
 
 export default function HomeScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [dietLogs, setDietLogs] = useState<DietLog[]>([]);
+  const [todaysDietLog, setTodaysDietLog] = useState<DietLog | null | undefined>(null);
+  const [pastDietLogs, setPastDietLogs] = useState<DietLog[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useFocusEffect(
-  useCallback(() => {
-    const loadData = async () => {
-      try {
-        const userId = await SecureStore.getItemAsync('userId');
-        const token = await SecureStore.getItemAsync('userToken');
-        if (!userId || !token) throw new Error('Missing auth info');
+    useCallback(() => {
+      const loadData = async () => {
+        try {
+          const userId = await SecureStore.getItemAsync('userId');
+          const token = await SecureStore.getItemAsync('userToken');
+          if (!userId || !token) throw new Error('Missing auth info');
 
-        const [profileRes, productRes, dietRes] = await Promise.all([
-          axios.get(`${API_URL}/profile/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_URL}/product`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${API_URL}/diet-log`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+          const [profileRes, productRes, dietRes] = await Promise.all([
+            axios.get(`${API_URL}/profile/${userId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`${API_URL}/product`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`${API_URL}/diet-log`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          ]);
 
-        setProfile(profileRes.data);
-        setProducts(productRes.data);
-        setDietLogs(dietRes.data);
-      } catch (err) {
-        console.error('Error loading data:', err);
-        Alert.alert('Error', 'Failed to load profile or logs.');
-      } finally {
-        setLoading(false);
-      }
+          setProfile(profileRes.data);
+          setProducts(productRes.data);
+          setDietLogs(dietRes.data);
+
+            const todays: DietLog | undefined = dietRes.data.find((log: DietLog) => log.date === today);
+            const past: DietLog[] = dietRes.data.filter((log: DietLog) => log.date !== today);
+          setTodaysDietLog(todays);
+          setPastDietLogs(past);
+        } catch (err) {
+          console.error('Error loading data:', err);
+          Alert.alert('Error', 'Failed to load profile or logs.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadData();
+    }, [])
+  );
+
+  interface Product {
+    id: string;
+    name: string;
+    type: string;
+    frequency: string;
+    startDate: string;
+    endDate?: string;
+    notes?: string;
+  }
+
+  interface DietLog {
+    id: string;
+    date: string;
+    meals?: {
+      breakfast?: string;
+      lunch?: string;
+      dinner?: string;
     };
+    snacks?: string;
+    waterIntake?: number;
+  }
 
-    loadData();
-  }, [])
-);
-
-
-  const handleDeleteProduct = async (productId: number) => {
+  const handleDeleteProduct = async (productId: string): Promise<void> => {
     try {
       const token = await SecureStore.getItemAsync('userToken');
       await axios.delete(`${API_URL}/product/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      setProducts((prev: Product[]) => prev.filter((p) => p.id !== productId));
     } catch (error) {
       console.error('Error deleting product:', error);
       Alert.alert('Error', 'Failed to delete product');
     }
   };
 
-  const handleDeleteDietLog = async (logId: number) => {
+  interface DeleteDietLogParams {
+    logId: string;
+  }
+
+  const handleDeleteDietLog = async (logId: DeleteDietLogParams['logId']): Promise<void> => {
     try {
       const token = await SecureStore.getItemAsync('userToken');
       await axios.delete(`${API_URL}/diet-log/${logId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setDietLogs((prev) => prev.filter((l) => l.id !== logId));
+      setDietLogs((prev: DietLog[]) => prev.filter((l: DietLog) => l.id !== logId));
     } catch (error) {
       console.error('Error deleting diet log:', error);
       Alert.alert('Error', 'Failed to delete diet log');
@@ -124,7 +140,6 @@ export default function HomeScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Welcome to your dashboard!</Text>
 
-      {/* Profile Info */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Your Profile</Text>
         <Text><Text style={styles.label}>Skin Type:</Text> {profile.skinType}</Text>
@@ -137,7 +152,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Product Tracker */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Your Products</Text>
         {products.length === 0 ? (
@@ -164,23 +178,42 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Lifestyle Tracker - Diet Logs */}
       <View style={styles.card}>
         <View style={styles.rowSpaceBetween}>
-          <Text style={styles.sectionTitle}>Food Tracker</Text>
-          <Button title="Track Diet" onPress={() => router.push('/lifestyle/add-diet-log')} />
+          <Text style={styles.sectionTitle}>Todays Food Log</Text>
+          {!todaysDietLog && <Button title="Log Diet" onPress={() => router.push('/lifestyle/add-diet-log')} />}
         </View>
-        {dietLogs.length === 0 ? (
-          <Text style={{ marginTop: 10 }}>No diet logs yet.</Text>
+
+        {todaysDietLog ? (
+          <View style={styles.entryBox}>
+            <Text style={styles.entryTitle}>{formatDate(todaysDietLog.date)}</Text>
+            <Text>Breakfast: {todaysDietLog.meals?.breakfast || '—'}</Text>
+            <Text>Lunch: {todaysDietLog.meals?.lunch || '—'}</Text>
+            <Text>Dinner: {todaysDietLog.meals?.dinner || '—'}</Text>
+            <Text>Snacks: {todaysDietLog.snacks || '—'}</Text>
+            <Text>Water Intake: {todaysDietLog.waterIntake} mL</Text>
+            <View style={styles.rowButtons}>
+              <Button title="Edit" onPress={() => router.push(`/lifestyle/edit-diet-log/${todaysDietLog.id}`)} />
+              <View style={{ width: 10 }} />
+              <Button title="Delete" color="red" onPress={() => handleDeleteDietLog(todaysDietLog.id)} />
+            </View>
+          </View>
         ) : (
-          dietLogs.map((log) => (
+          <Text style={{ marginTop: 8 }}>No log yet for today.</Text>
+        )}
+
+        <Text style={styles.sectionTitle}>Past Logs</Text>
+        {pastDietLogs.length === 0 ? (
+          <Text>No past logs available.</Text>
+        ) : (
+          pastDietLogs.map((log) => (
             <View key={log.id} style={styles.entryBox}>
               <Text style={styles.entryTitle}>{formatDate(log.date)}</Text>
-              {log.meals.breakfast && <Text>Breakfast: {log.meals.breakfast}</Text>}
-              {log.meals.lunch && <Text>Lunch: {log.meals.lunch}</Text>}
-              {log.meals.dinner && <Text>Dinner: {log.meals.dinner}</Text>}
-              {log.snacks && <Text>Snacks: {log.snacks}</Text>}
-              {log.waterIntake != null && <Text>Water Intake: {log.waterIntake} mL</Text>}
+              <Text>Breakfast: {log.meals?.breakfast || '—'}</Text>
+              <Text>Lunch: {log.meals?.lunch || '—'}</Text>
+              <Text>Dinner: {log.meals?.dinner || '—'}</Text>
+              <Text>Snacks: {log.snacks || '—'}</Text>
+              <Text>Water Intake: {log.waterIntake} mL</Text>
               <View style={styles.rowButtons}>
                 <Button title="Edit" onPress={() => router.push(`/lifestyle/edit-diet-log/${log.id}`)} />
                 <View style={{ width: 10 }} />

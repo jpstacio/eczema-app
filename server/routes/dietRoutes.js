@@ -22,9 +22,17 @@ router.get('/', authenticateToken, async (req, res) => {
 
 router.post('/', authenticateToken, async (req, res) => {
   const { date, meals, snacks, waterIntake } = req.body;
-  const userId = req.user.userId; // <-- make sure this matches your JWT payload
+  const userId = req.user.userId;
 
   try {
+    const existingLog = await DietLog.findOne({
+      where: { userId, date }
+    });
+
+    if (existingLog) {
+      return res.status(409).json({ error: 'You already logged your meals for this day.' });
+    }
+
     const newLog = await DietLog.create({
       userId,
       date,
@@ -32,6 +40,7 @@ router.post('/', authenticateToken, async (req, res) => {
       snacks,
       waterIntake,
     });
+
     res.status(201).json(newLog);
   } catch (err) {
     console.error('Diet log creation error:', err);
