@@ -19,43 +19,57 @@ type Product = {
   name: string;
   type: string;
   frequency: string;
-  startDate?: string;
-  endDate?: string;
+  startDate: string;
+  endDate?: string | null;
   notes?: string;
+};
+
+type DietLog = {
+  id: number;
+  date: string;
+  meals: { breakfast?: string; lunch?: string; dinner?: string };
+  snacks?: string;
+  waterIntake?: number;
 };
 
 export default function HomeScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [dietLogs, setDietLogs] = useState<DietLog[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const loadProfileAndProducts = async () => {
+    const loadData = async () => {
       try {
         const userId = await SecureStore.getItemAsync('userId');
         const token = await SecureStore.getItemAsync('userToken');
         if (!userId || !token) throw new Error('Missing auth info');
 
-        const [profileRes, productRes] = await Promise.all([
+        const [profileRes, productRes, dietRes] = await Promise.all([
           axios.get(`${API_URL}/profile/${userId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get(`${API_URL}/product`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          axios.get(`${API_URL}/diet-log`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         setProfile(profileRes.data);
         setProducts(productRes.data);
+        setDietLogs(dietRes.data);
       } catch (err) {
         console.error('Error loading data:', err);
+        Alert.alert('Error', 'Failed to load profile or logs.');
       } finally {
         setLoading(false);
       }
     };
 
-    loadProfileAndProducts();
+    loadData();
   }, []);
 
   const handleDeleteProduct = async (productId: number) => {
@@ -68,6 +82,19 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error deleting product:', error);
       Alert.alert('Error', 'Failed to delete product');
+    }
+  };
+
+  const handleDeleteDietLog = async (logId: number) => {
+    try {
+      const token = await SecureStore.getItemAsync('userToken');
+      await axios.delete(`${API_URL}/diet-log/${logId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDietLogs((prev) => prev.filter((l) => l.id !== logId));
+    } catch (error) {
+      console.error('Error deleting diet log:', error);
+      Alert.alert('Error', 'Failed to delete diet log');
     }
   };
 
@@ -92,17 +119,18 @@ export default function HomeScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Welcome to your dashboard!</Text>
 
+      {/* Profile Info */}
       <Text style={styles.sectionTitle}>Your Profile</Text>
       <Text><Text style={styles.label}>Skin Type:</Text> {profile.skinType}</Text>
       <Text><Text style={styles.label}>Allergies:</Text> {profile.allergies || 'None'}</Text>
       <Text><Text style={styles.label}>Date of Birth:</Text> {formatDate(profile.dob)}</Text>
       <Text><Text style={styles.label}>Gender/Sex:</Text> {profile.gender}</Text>
       <Text><Text style={styles.label}>Skin Conditions:</Text> {profile.conditions || 'None'}</Text>
-
       <View style={{ marginTop: 20 }}>
         <Button title="Edit Profile" onPress={() => router.push('/edit-profile')} />
       </View>
 
+      {/* Product Tracker */}
       <Text style={styles.sectionTitle}>Your Products</Text>
       {products.length === 0 ? (
         <Text>No products yet.</Text>
@@ -115,23 +143,41 @@ export default function HomeScreen() {
             <Text>Start: {formatDate(item.startDate)}</Text>
             <Text>Stop: {item.endDate ? formatDate(item.endDate) : 'Ongoing'}</Text>
             {item.notes && <Text>Notes: {item.notes}</Text>}
-
             <View style={{ flexDirection: 'row', marginTop: 8 }}>
               <Button title="Edit" onPress={() => router.push(`/products/${item.id}/edit`)} />
               <View style={{ width: 10 }} />
-              <Button
-                title="Delete"
-                color="red"
-                onPress={() => handleDeleteProduct(item.id)}
-              />
+              <Button title="Delete" color="red" onPress={() => handleDeleteProduct(item.id)} />
             </View>
           </View>
         ))
       )}
-
       <View style={{ marginTop: 20 }}>
         <Button title="Add Product" onPress={() => router.push('/products/add-product')} />
       </View>
+
+      {/* Lifestyle Tracker - Diet Logs */}
+      <Text style={styles.sectionTitle}>Lifestyle Tracker</Text>
+      <Button title="Track Diet" onPress={() => router.push('/lifestyle/add-diet-log')} />
+
+      {dietLogs.length === 0 ? (
+        <Text style={{ marginTop: 10 }}>No diet logs yet.</Text>
+      ) : (
+        dietLogs.map((log) => (
+          <View key={log.id} style={styles.productItem}>
+            <Text style={styles.productTitle}>{formatDate(log.date)}</Text>
+            {log.meals.breakfast && <Text>Breakfast: {log.meals.breakfast}</Text>}
+            {log.meals.lunch && <Text>Lunch: {log.meals.lunch}</Text>}
+            {log.meals.dinner && <Text>Dinner: {log.meals.dinner}</Text>}
+            {log.snacks && <Text>Snacks: {log.snacks}</Text>}
+            {log.waterIntake != null && <Text>Water Intake: {log.waterIntake} mL</Text>}
+            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+              <Button title="Edit" onPress={() => router.push(`/lifestyle/edit-diet-log/${log.id}`)} />
+              <View style={{ width: 10 }} />
+              <Button title="Delete" color="red" onPress={() => handleDeleteDietLog(log.id)} />
+            </View>
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 }
