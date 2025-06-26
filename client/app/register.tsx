@@ -25,8 +25,10 @@ export default function RegisterScreen() {
       Alert.alert('Success', 'Account created! Please log in.');
       router.replace('/login');
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.response?.data?.message || 'Something went wrong');
-    }
+        console.error('Registration error:', error.response?.data || error.message);
+        Alert.alert('Registration Failed', error.response?.data?.message || 'Something went wrong');
+}
+
   };
 
   return (

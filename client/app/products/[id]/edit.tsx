@@ -4,11 +4,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL } from '@/constants/api';
+import { Picker } from '@react-native-picker/picker';
 
 export default function EditProduct() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [product, setProduct] = useState<any>(null);
 
   const [name, setName] = useState('');
   const [type, setType] = useState('');
@@ -16,21 +16,23 @@ export default function EditProduct() {
   const [startDate, setStartDate] = useState('');
   const [stopDate, setStopDate] = useState('');
 
+  const typeOptions = ['Cream', 'Ointment', 'Oral Medication', 'Cleanser', 'Other'];
+  const frequencyOptions = ['Once Daily', 'Twice Daily', 'As Needed', 'Weekly', 'Other'];
+
   useEffect(() => {
     const fetchProduct = async () => {
       const token = await SecureStore.getItemAsync('userToken');
       try {
-        const res = await axios.get(`${API_URL}/product`, {
+        const res = await axios.get(`${API_URL}/product/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const item = res.data.find((p: any) => p.id.toString() === id);
-        setProduct(item);
 
-        setName(item.name);
-        setType(item.type);
-        setFrequency(item.frequency);
-        setStartDate(item.startDate || '');
-        setStopDate(item.stopDate || '');
+        const product = res.data;
+        setName(product.name);
+        setType(product.type);
+        setFrequency(product.frequency);
+        setStartDate(product.startDate || '');
+        setStopDate(product.stopDate || '');
       } catch (err) {
         Alert.alert('Error', 'Failed to fetch product');
       }
@@ -48,18 +50,16 @@ export default function EditProduct() {
         frequency,
         startDate: startDate || null,
         stopDate: stopDate || null,
-        }, {
-  headers: { Authorization: `Bearer ${token}` },
-});
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       Alert.alert('Success', 'Product updated');
-      router.back();
+      router.push(`/products/${id}`);
     } catch (err) {
       Alert.alert('Error', 'Failed to update product');
     }
   };
-
-  if (!product) return <Text>Loading...</Text>;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -69,10 +69,22 @@ export default function EditProduct() {
       <TextInput value={name} onChangeText={setName} style={styles.input} />
 
       <Text style={styles.label}>Type</Text>
-      <TextInput value={type} onChangeText={setType} style={styles.input} />
+      <View style={styles.pickerWrapper}>
+        <Picker selectedValue={type} onValueChange={setType}>
+          {typeOptions.map((option) => (
+            <Picker.Item label={option} value={option} key={option} />
+          ))}
+        </Picker>
+      </View>
 
       <Text style={styles.label}>Frequency</Text>
-      <TextInput value={frequency} onChangeText={setFrequency} style={styles.input} />
+      <View style={styles.pickerWrapper}>
+        <Picker selectedValue={frequency} onValueChange={setFrequency}>
+          {frequencyOptions.map((option) => (
+            <Picker.Item label={option} value={option} key={option} />
+          ))}
+        </Picker>
+      </View>
 
       <Text style={styles.label}>Start Date (YYYY-MM-DD)</Text>
       <TextInput value={startDate} onChangeText={setStartDate} style={styles.input} />
@@ -90,13 +102,28 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#fff',
   },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
-  label: { fontWeight: '600', marginTop: 16 },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  label: {
+    fontWeight: '600',
+    marginTop: 16,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
     padding: 10,
     marginTop: 4,
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    marginTop: 4,
+    marginBottom: 8,
+    overflow: 'hidden',
   },
 });

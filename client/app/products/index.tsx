@@ -7,6 +7,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL } from '@/constants/api';
+import { formatDate, formatFrequency } from '@/utils/formatting';
 
 type Product = {
   id: number;
@@ -68,9 +69,9 @@ export default function ProductsScreen() {
           >
             <Text style={styles.name}>{item.name}</Text>
             <Text>Type: {item.type}</Text>
-            <Text>Frequency: {item.frequency}</Text>
-            <Text>Start Date: {item.startDate}</Text>
-            <Text>End Date: {item.endDate || 'Ongoing'}</Text>
+            <Text>Frequency: {formatFrequency(item.frequency)}</Text>
+            <Text>Start Date: {formatDate(item.startDate)}</Text>
+            <Text>End Date: {item.endDate ? formatDate(item.endDate) : 'Ongoing'}</Text>
           </TouchableOpacity>
         )}
         ListEmptyComponent={<Text>No products yet.</Text>}

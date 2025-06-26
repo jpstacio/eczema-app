@@ -39,7 +39,6 @@ router.post('/:userId', authenticateToken, async (req, res) => {
   }
 });
 
-// ✅ PUT /profile/:userId — Update profile (cleaner route for editing)
 router.put('/:userId', authenticateToken, async (req, res) => {
   const { userId } = req.params;
   const { skinType, allergies, dob, gender, conditions } = req.body;

@@ -51,21 +51,19 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // DELETE /product/:id – delete a product
-router.delete('/:id', authenticateToken, async (req, res) => {
+// DELETE /product/:id
+router.delete('/product/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
   try {
-    const id = parseInt(req.params.id);
-    const deleted = await Product.destroy({ where: { id, userId: req.user.userId } });
-
-    if (deleted === 0) {
-      return res.status(404).json({ error: 'Product not found or not authorized' });
-    }
-
+    const product = await Product.findByPk(id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    await product.destroy();
     res.json({ message: 'Product deleted' });
   } catch (err) {
-    console.error('Error deleting product:', err);
     res.status(500).json({ error: 'Failed to delete product' });
   }
 });
+
 
 /* --------  USAGE LOGS  -------- */
 

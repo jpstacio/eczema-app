@@ -1,10 +1,10 @@
-// app/products/[id].tsx
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Button, ScrollView, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL } from '@/constants/api';
+import { formatDate, formatFrequency } from '@/utils/formatting';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -44,9 +44,9 @@ export default function ProductDetailScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.heading}>{product.name}</Text>
       <Text>Type: {product.type}</Text>
-      <Text>Frequency: {product.frequency}</Text>
-      <Text>Start: {product.startDate}</Text>
-      <Text>Stop: {product.stopDate || 'Ongoing'}</Text>
+      <Text>Frequency: {formatFrequency(product.frequency)}</Text>
+      <Text>Start: {formatDate(product.startDate)}</Text>
+      <Text>Stop: {product.stopDate ? formatDate(product.stopDate) : 'Ongoing'}</Text>
       <Text>Notes: {product.notes || 'None'}</Text>
 
       <View style={{ marginVertical: 20 }}>
@@ -63,7 +63,7 @@ export default function ProductDetailScreen() {
             style={styles.logItem}
             onPress={() => router.push(`/products/${id}/logs/${log.id}`)}
           >
-            <Text>{log.dateUsed?.slice(0, 10)} – {log.notes || 'No notes'}</Text>
+            <Text>{formatDate(log.dateUsed)} – {log.notes || 'No notes'}</Text>
           </TouchableOpacity>
         ))
       )}
