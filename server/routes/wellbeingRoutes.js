@@ -1,33 +1,39 @@
+
+// server/routes/wellbeingRoutes.js
 const express = require('express');
-const router = express.Router();
-const WellBeingLog = require('../models/WellBeingLog');
-const authenticateToken = require('../middleware/authMiddleware');
+const router  = express.Router();
+const authenticate = require('../middleware/authMiddleware');
+const { WellBeingLog } = require('../models');   
 
-router.get('/:userId', authenticateToken, async (req, res) => {
-  const logs = await WellBeingLog.findAll({ where: { userId: req.params.userId } });
-  res.json(logs);
-});
+// POST /wellbeing-log
+router.post('/', authenticate, async (req, res) => {
+  const { mood, stressLevel, sleepDuration } = req.body;
 
-router.post('/', authenticateToken, async (req, res) => {
   try {
-    const log = await WellBeingLog.create({ ...req.body });
-    res.status(201).json(log);
+    const today = new Date().toISOString().slice(0, 10); // Format: YYYY-MM-DD
+
+    await WellBeingLog.create({
+      userId: req.user.userId,
+      mood,
+      stressLevel,
+      sleepHours: sleepDuration,  
+      date: today,                
+    });
+
+    return res.status(201).json({ message: 'Well-being log saved' });
   } catch (err) {
-    res.status(400).json({ error: 'Failed to create well-being log' });
+    console.error('Error creating wellbeing log:', err);
+    return res.status(500).json({ error: 'Failed to create wellbeing log' });
   }
 });
 
-router.put('/:logId', authenticateToken, async (req, res) => {
-  const log = await WellBeingLog.findByPk(req.params.logId);
-  if (!log) return res.status(404).json({ error: 'Log not found' });
-
-  await log.update(req.body);
-  res.json(log);
-});
-
-router.delete('/:logId', authenticateToken, async (req, res) => {
-  const deleted = await WellBeingLog.destroy({ where: { id: req.params.logId } });
-  res.json({ success: deleted > 0 });
+// GET /wellbeing-log
+router.get('/', authenticate, async (req, res) => {
+  const logs = await WellBeingLog.findAll({
+    where: { userId: req.user.userId },
+    order: [['createdAt', 'DESC']],
+  });
+  res.json(logs);
 });
 
 module.exports = router;

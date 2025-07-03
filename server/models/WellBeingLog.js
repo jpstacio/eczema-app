@@ -1,18 +1,27 @@
-const { DataTypes } = require('sequelize');
+// models/WellbeingLog.js
+const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 
-const WellBeingLog = sequelize.define('WellBeingLog', {
-  userId: { type: DataTypes.INTEGER, allowNull: false },
-  date: { type: DataTypes.DATEONLY, allowNull: false },
-  mood: {
-    type: DataTypes.ENUM('Happy', 'Neutral', 'Sad', 'Anxious', 'Angry'),
-    allowNull: false,
+class WellBeingLog extends Model {}
+
+WellBeingLog.init(
+  {
+    mood: DataTypes.STRING,
+    stressLevel: DataTypes.STRING,
+    sleepHours: DataTypes.FLOAT,
+    date: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   },
-  stressLevel: {
-    type: DataTypes.ENUM('Low', 'Moderate', 'High'),
-    allowNull: false,
-  },
-  sleepHours: { type: DataTypes.FLOAT },
-});
+  {
+    sequelize,
+    modelName: 'WellBeingLog',
+  }
+);
 
 module.exports = WellBeingLog;
