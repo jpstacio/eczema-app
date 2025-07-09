@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
   Button,
   Alert,
@@ -15,7 +15,8 @@ import { useRouter } from 'expo-router';
 import { formatDate, formatFrequency } from '@/utils/formatting';
 import { useFocusEffect } from '@react-navigation/native';
 
-// Types
+// --------------- Type definitions ---------------
+
 type Product = {
   id: number;
   name: string;
@@ -34,14 +35,26 @@ type DietLog = {
   waterIntake?: number;
 };
 
+type WellBeingLog = {
+  id: number;
+  date: string;
+  mood: string;
+  stressLevel: string;
+  sleepHours: number;
+};
+
+// ------------------------------------------------
+
 export default function HomeScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [dietLogs, setDietLogs] = useState<DietLog[]>([]);
+  const [wellbeingLogs, setWellbeingLogs] = useState<WellBeingLog[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // ---------- Fetch data when screen is focused ----------
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
@@ -50,7 +63,7 @@ export default function HomeScreen() {
           const token = await SecureStore.getItemAsync('userToken');
           if (!userId || !token) throw new Error('Missing auth info');
 
-          const [profileRes, productRes, dietRes] = await Promise.all([
+          const [profileRes, productRes, dietRes, wellbeingRes] = await Promise.all([
             axios.get(`${API_URL}/profile/${userId}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
@@ -60,11 +73,15 @@ export default function HomeScreen() {
             axios.get(`${API_URL}/diet-log`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
+            axios.get(`${API_URL}/wellbeing-log`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
           ]);
 
           setProfile(profileRes.data);
           setProducts(productRes.data);
           setDietLogs(dietRes.data);
+          setWellbeingLogs(wellbeingRes.data);
         } catch (err) {
           console.error('Error loading data:', err);
           Alert.alert('Error', 'Failed to load profile or logs.');
@@ -76,6 +93,8 @@ export default function HomeScreen() {
       loadData();
     }, [])
   );
+
+  // ---------- Handlers ----------
 
   const handleDeleteProduct = async (productId: number) => {
     try {
@@ -103,11 +122,15 @@ export default function HomeScreen() {
     }
   };
 
+  // ---------- Derived data ----------
+
   const categorizedProducts = products.reduce((acc: Record<string, Product[]>, product) => {
     if (!acc[product.type]) acc[product.type] = [];
     acc[product.type].push(product);
     return acc;
-  }, {});
+  }, {} as Record<string, Product[]>);
+
+  // ---------- Loading & empty states ----------
 
   if (loading) {
     return (
@@ -126,11 +149,13 @@ export default function HomeScreen() {
     );
   }
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
+  // ---------- UI Sections (Header component for FlatList) ----------
+
+  const Header = () => (
+    <View>
       <Text style={styles.title}>Welcome to your dashboard!</Text>
 
-      {/* Profile Info */}
+      {/* ---- Profile ---- */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Your Profile</Text>
         <Text><Text style={styles.label}>Skin Type:</Text> {profile.skinType}</Text>
@@ -143,11 +168,9 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Product Tracker */}
+      {/* ---- Products ---- */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Your Products</Text>
-
-        {/* Category Buttons */}
         <View style={styles.categoryButtonRow}>
           {Object.keys(categorizedProducts).map((category) => (
             <Button
@@ -158,8 +181,6 @@ export default function HomeScreen() {
             />
           ))}
         </View>
-
-        {/* Products in selected category */}
         {selectedCategory ? (
           categorizedProducts[selectedCategory].map((item) => (
             <View key={item.id} style={styles.entryBox}>
@@ -178,13 +199,12 @@ export default function HomeScreen() {
         ) : (
           <Text style={{ marginTop: 8 }}>Select a category to view your products.</Text>
         )}
-
         <View style={{ marginTop: 12 }}>
           <Button title="Add Product" onPress={() => router.push('/products/add-product')} />
         </View>
       </View>
 
-      {/* Lifestyle Tracker - Diet Logs */}
+      {/* ---- Diet Logs ---- */}
       <View style={styles.card}>
         <View style={styles.rowSpaceBetween}>
           <Text style={styles.sectionTitle}>Food Tracker</Text>
@@ -210,9 +230,43 @@ export default function HomeScreen() {
           ))
         )}
       </View>
-    </ScrollView>
+
+      {/* ---- Well‑being Logs ---- */}
+      <View style={styles.card}>
+        <View style={styles.rowSpaceBetween}>
+          <Text style={styles.sectionTitle}>Well-being Tracker</Text>
+          <Button title="Add" onPress={() => router.push('/lifestyle/add-wellbeing-log')} />
+        </View>
+        {wellbeingLogs.length === 0 ? (
+          <Text style={{ marginTop: 10 }}>No well-being logs yet.</Text>
+        ) : (
+          wellbeingLogs.map((log) => (
+            <View key={log.id} style={styles.entryBox}>
+              <Text style={styles.entryTitle}>{formatDate(log.date)}</Text>
+              <Text>Mood: {log.mood}</Text>
+              <Text>Stress: {log.stressLevel}</Text>
+              <Text>Sleep: {log.sleepHours}</Text>
+            </View>
+          ))
+        )}
+      </View>
+    </View>
+  );
+
+// ---------- FlatList renders nothing – all UI is in the header ----------
+
+  return (
+    <FlatList
+      data={[]} // empty data – we only use header
+      keyExtractor={() => 'header'}
+      renderItem={null}
+      ListHeaderComponent={<Header />}
+      contentContainerStyle={styles.container}
+    />
   );
 }
+
+// --------------- Styles ---------------
 
 const styles = StyleSheet.create({
   container: {
